@@ -1,0 +1,13 @@
+{
+  "name": "math-tutor-landing",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  },
+  "devDependencies": {
+    "puppeteer": "^24.0.0"
+  }
+}
