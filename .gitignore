@@ -3,3 +3,4 @@ temporary screenshots/
 .env
 .claude/
 .mcp.json
+server/data/

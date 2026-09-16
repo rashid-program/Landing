@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>MathX · статистика</title>
+<style>
+  :root {
+    --paper: #e8eff4;
+    --surface: #fcfdfe;
+    --ink: #10243a;
+    --ink-soft: #1e3851;
+    --muted: #4f6478;
+    --blue: #285b9a;
+    --blue-soft: #cddcec;
+    --coral: #d8684f;
+    --teal: #14877f;
+    --line: rgba(18, 35, 58, 0.14);
+    --font-sans: "Segoe UI Variable Text", "Aptos", "Segoe UI", Arial, sans-serif;
+    --font-display: "Segoe UI Variable Display", "Aptos Display", "Segoe UI", Arial, sans-serif;
+    --font-math: "Cambria Math", Cambria, "Times New Roman", serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 0 20px 72px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: 15px;
+    line-height: 1.5;
+  }
+
+  .wrap { max-width: 980px; margin: 0 auto; }
+
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 36px 0 22px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  h1 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 25px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+
+  h1 span { color: var(--muted); font-weight: 400; }
+
+  .periods { display: flex; gap: 4px; }
+
+  /* Собственный display перебивает браузерный [hidden] — возвращаем его. */
+  .periods[hidden] { display: none; }
+
+  .periods button {
+    padding: 6px 13px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+  }
+
+  .periods button:hover { border-color: var(--blue); color: var(--blue); }
+  .periods button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .periods button:active { background: var(--blue-soft); }
+  .periods button[aria-pressed="true"] {
+    background: var(--ink);
+    border-color: var(--ink);
+    color: #fff;
+  }
+
+  /* Сводка: числа набраны той же гарнитурой, что формулы на сайте. */
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 28px;
+    padding: 30px 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .summary div { min-width: 0; }
+
+  .summary b {
+    display: block;
+    font-family: var(--font-math);
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .summary .conv b { color: var(--teal); }
+  .summary p { margin: 7px 0 0; color: var(--muted); font-size: 13.5px; }
+
+  section { padding: 32px 0; border-bottom: 1px solid var(--line); }
+
+  h2 {
+    margin: 0 0 4px;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+  }
+
+  h3 {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  .note { margin: 0 0 20px; color: var(--muted); font-size: 13.5px; }
+
+  /* Профиль просмотра — убывающая функция по секциям страницы. */
+  .profile { display: grid; gap: 7px; }
+
+  .row {
+    display: grid;
+    grid-template-columns: 132px 1fr 52px;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .row .name { color: var(--ink-soft); font-size: 14px; }
+
+  .track {
+    position: relative;
+    height: 26px;
+    background: rgba(18, 35, 58, 0.05);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .fill {
+    height: 100%;
+    background: var(--blue);
+    border-radius: 3px;
+  }
+
+  .row.drop .fill { background: var(--coral); }
+
+  .row .pct {
+    font-family: var(--font-math);
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    color: var(--ink-soft);
+  }
+
+  .drop-note {
+    margin: 14px 0 0;
+    padding-left: 146px;
+    color: var(--coral);
+    font-size: 13.5px;
+  }
+
+  .cols { display: grid; grid-template-columns: repeat(3, 1fr); gap: 36px; }
+
+  table { width: 100%; border-collapse: collapse; }
+
+  td {
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(18, 35, 58, 0.07);
+    font-size: 14px;
+    vertical-align: baseline;
+  }
+
+  tr:last-child td { border-bottom: 0; }
+
+  td.n {
+    width: 58px;
+    text-align: right;
+    font-family: var(--font-math);
+    font-variant-numeric: tabular-nums;
+    color: var(--ink);
+  }
+
+  td.label { color: var(--ink-soft); word-break: break-word; }
+
+  .empty {
+    padding: 64px 0;
+    text-align: center;
+    color: var(--muted);
+  }
+
+  .empty strong {
+    display: block;
+    margin-bottom: 8px;
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--ink);
+  }
+
+  .signin { padding: 60px 0 40px; max-width: 420px; }
+
+  .signin label { display: block; margin-bottom: 8px; color: var(--ink-soft); font-size: 14px; }
+
+  .signin-row { display: flex; gap: 8px; }
+
+  .signin input {
+    flex: 1;
+    min-width: 0;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+  }
+
+  .signin input:focus-visible { outline: 2px solid var(--blue); outline-offset: 1px; }
+
+  .signin button {
+    padding: 9px 18px;
+    border: 1px solid var(--ink);
+    border-radius: 6px;
+    background: var(--ink);
+    color: #fff;
+    font: inherit;
+    cursor: pointer;
+    transition: background-color 140ms ease, border-color 140ms ease;
+  }
+
+  .signin button:hover { background: var(--blue); border-color: var(--blue); }
+  .signin button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+  .signin button:active { background: var(--blue-deep, #102e49); }
+
+  .signin .hint { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+  .signin .error { margin: 12px 0 0; color: var(--coral); font-size: 13.5px; }
+
+  .signout {
+    margin-left: 10px;
+    padding: 6px 13px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+
+  .signout:hover { border-color: var(--coral); color: var(--coral); }
+  .signout:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  footer { padding-top: 26px; color: var(--muted); font-size: 13px; }
+
+  @media (max-width: 860px) {
+    .summary { grid-template-columns: repeat(2, 1fr); gap: 24px; }
+    .cols { grid-template-columns: 1fr; gap: 30px; }
+    .row { grid-template-columns: 96px 1fr 46px; gap: 10px; }
+    .drop-note { padding-left: 0; }
+    .summary b { font-size: 34px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <h1>MathX <span>· статистика</span></h1>
+      <div class="periods" id="periods">
+        <button type="button" data-days="7" aria-pressed="true">7 дней</button>
+        <button type="button" data-days="30" aria-pressed="false">30 дней</button>
+        <button type="button" data-days="90" aria-pressed="false">90 дней</button>
+        <button type="button" class="signout" id="signout">Выйти</button>
+      </div>
+    </div>
+
+    <div id="content">
+      <div class="empty">Загружаю данные…</div>
+    </div>
+
+    <footer>
+      Считаются обезличенные действия на странице: cookies не ставятся,
+      персональные данные не собираются. Посетитель с включённым Do Not Track в статистику не попадает.
+    </footer>
+  </div>
+
+<script nonce="__NONCE__">
+(function () {
+  'use strict';
+
+  var SECTION_NAMES = {
+    hero: 'Первый экран',
+    signals: 'Проблемы',
+    programs: 'Программы',
+    method: 'Как устроено',
+    results: 'Результаты',
+    about: 'О репетиторе',
+    reviews: 'Отзывы',
+    faq: 'Вопросы',
+    contact: 'Контакты',
+  };
+
+  // Совпадает с порядком вопросов в public/index.html.
+  var FAQ_NAMES = {
+    'faq-1': 'Сколько учеников в группе?',
+    'faq-2': 'Как формируются группы?',
+    'faq-3': 'Какой график занятий?',
+    'faq-4': 'Как проходят онлайн-занятия?',
+    'faq-5': 'Как родитель сможет понимать прогресс?',
+    'faq-6': 'Сколько стоит обучение и есть ли места?',
+  };
+
+  var SOURCE_NAMES = {
+    direct: 'Прямые заходы',
+    internal: 'Переходы внутри сайта',
+    unknown: 'Источник не определён',
+  };
+
+  var BUTTON_NAMES = {
+    'cta-header': 'Пробный урок (шапка)',
+    'cta-menu': 'Записаться (меню)',
+    'cta-hero': 'Записаться (первый экран)',
+    'cta-hero-reviews': 'Смотреть отзывы',
+    'cta-contact': 'Записаться (контакты)',
+    'reviews-more': 'Показать ещё отзывы',
+    telegram: 'Telegram',
+    whatsapp: 'WhatsApp',
+  };
+
+  var TOKEN_KEY = 'mathx.stats.token';
+  var content = document.getElementById('content');
+  var periods = document.getElementById('periods');
+  var currentDays = 7;
+
+  // Токен живёт только в этом браузере и уходит на сервер заголовком, а не в
+  // адресе страницы: в адресе он попал бы в логи, историю и пересланную ссылку.
+  function readToken() {
+    try {
+      return sessionStorage.getItem(TOKEN_KEY) || '';
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function writeToken(value) {
+    try {
+      if (value) sessionStorage.setItem(TOKEN_KEY, value);
+      else sessionStorage.removeItem(TOKEN_KEY);
+    } catch (error) {
+      // Приватный режим: токен проживёт до перезагрузки страницы.
+    }
+  }
+
+  var token = readToken();
+
+  // Ссылка со старым ?token=… ещё может лежать в закладках: принимаем токен,
+  // но тут же убираем его из адреса, чтобы он не остался в истории.
+  var legacyToken = new URLSearchParams(location.search).get('token');
+  if (legacyToken) {
+    token = legacyToken;
+    writeToken(legacyToken);
+    history.replaceState(null, '', location.pathname);
+  }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/[&<>"]/g, function (char) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char];
+    });
+  }
+
+  function duration(seconds) {
+    if (!seconds) return '—';
+    var minutes = Math.floor(seconds / 60);
+    var rest = seconds % 60;
+    return minutes ? minutes + ':' + String(rest).padStart(2, '0') : rest + ' с';
+  }
+
+  function table(rows, names) {
+    if (!rows.length) return '<p class="note">Пока пусто.</p>';
+    return '<table>' + rows.map(function (row) {
+      var label = names && names[row.label] ? names[row.label] : row.label;
+      return '<tr><td class="label">' + escapeHtml(label) + '</td><td class="n">' + row.count + '</td></tr>';
+    }).join('') + '</table>';
+  }
+
+  /** Ищет, между какими соседними секциями теряется больше всего людей. */
+  function biggestDrop(sections) {
+    var worst = { index: -1, loss: 0 };
+    for (var i = 1; i < sections.length; i += 1) {
+      var loss = sections[i - 1].share - sections[i].share;
+      if (loss > worst.loss) worst = { index: i, loss: loss };
+    }
+    return worst.loss >= 10 ? worst : null;
+  }
+
+  function renderProfile(sections) {
+    if (!sections.length) return '<p class="note">Пока пусто.</p>';
+
+    var top = sections[0].sessions || 1;
+    var drop = biggestDrop(sections);
+
+    var rows = sections.map(function (section, index) {
+      var width = Math.round((section.sessions / top) * 100);
+      var isDrop = drop && drop.index === index;
+      return '<div class="row' + (isDrop ? ' drop' : '') + '">' +
+        '<div class="name">' + escapeHtml(SECTION_NAMES[section.id] || section.id) + '</div>' +
+        '<div class="track"><div class="fill" style="width:' + width + '%"></div></div>' +
+        '<div class="pct">' + section.share + '%</div>' +
+      '</div>';
+    }).join('');
+
+    var note = drop
+      ? '<p class="drop-note">Здесь теряется больше всего: −' + drop.loss +
+        '% между блоками «' + escapeHtml(SECTION_NAMES[sections[drop.index - 1].id] || sections[drop.index - 1].id) +
+        '» и «' + escapeHtml(SECTION_NAMES[sections[drop.index].id] || sections[drop.index].id) + '».</p>'
+      : '';
+
+    return '<div class="profile">' + rows + '</div>' + note;
+  }
+
+  function render(stats) {
+    if (!stats.visits) {
+      content.innerHTML = '<div class="empty"><strong>Данных пока нет</strong>' +
+        'Статистика появится после первых визитов на сайт. Откройте страницу в обычном окне браузера и полистайте её.</div>';
+      return;
+    }
+
+    content.innerHTML =
+      '<div class="summary">' +
+        '<div><b>' + stats.visits + '</b><p>визитов</p></div>' +
+        '<div><b>' + stats.messengerClicks + '</b><p>написали в мессенджер</p></div>' +
+        '<div class="conv"><b>' + stats.conversion + '%</b><p>доходят до сообщения</p></div>' +
+        '<div><b>' + duration(stats.averageSeconds) + '</b><p>среднее время на странице</p></div>' +
+      '</div>' +
+
+      '<section>' +
+        '<h2>Профиль просмотра</h2>' +
+        '<p class="note">Доля визитов, в которых блок задержался на экране дольше секунды.</p>' +
+        renderProfile(stats.sections) +
+      '</section>' +
+
+      '<section>' +
+        '<h2>Действия</h2>' +
+        '<p class="note">Сколько раз нажимали кнопки и раскрывали вопросы.</p>' +
+        '<div class="cols">' +
+          '<div><h3>Кнопки</h3>' + table(stats.clicks, BUTTON_NAMES) + '</div>' +
+          '<div><h3>Вопросы</h3>' + table(stats.faq, FAQ_NAMES) + '</div>' +
+          '<div><h3>Глубина прокрутки</h3><table>' +
+            stats.scroll.map(function (step) {
+              return '<tr><td class="label">до ' + step.mark + '%</td><td class="n">' + step.share + '%</td></tr>';
+            }).join('') +
+          '</table></div>' +
+        '</div>' +
+      '</section>' +
+
+      '<section>' +
+        '<h2>Кто заходил</h2>' +
+        '<p class="note">Откуда пришли и с какого устройства. Личность посетителя не определяется.</p>' +
+        '<div class="cols">' +
+          '<div><h3>Источники</h3>' + table(stats.referrers, SOURCE_NAMES) + '</div>' +
+          '<div><h3>Устройства</h3>' + table(stats.viewports, { mobile: 'Телефон', tablet: 'Планшет', desktop: 'Компьютер', unknown: 'Неизвестно' }) + '</div>' +
+          '<div><h3>Рекламные метки</h3>' + table(stats.campaigns) + '</div>' +
+        '</div>' +
+      '</section>';
+  }
+
+  /** Экран входа: единственное, что показывает панель без токена. */
+  function renderSignIn(message) {
+    periods.hidden = true;
+    content.innerHTML =
+      '<div class="signin">' +
+        '<label for="token-input">Токен доступа</label>' +
+        '<div class="signin-row">' +
+          '<input id="token-input" type="password" autocomplete="current-password" spellcheck="false">' +
+          '<button type="button" id="token-submit">Войти</button>' +
+        '</div>' +
+        (message ? '<p class="error">' + escapeHtml(message) + '</p>' : '') +
+        '<p class="hint">Значение переменной STATS_TOKEN, с которой запущен сервер. ' +
+        'Сохранится до закрытия вкладки.</p>' +
+      '</div>';
+
+    var input = document.getElementById('token-input');
+    var submit = document.getElementById('token-submit');
+
+    function apply() {
+      var value = input.value.trim();
+      if (!value) return;
+      token = value;
+      writeToken(value);
+      load(currentDays);
+    }
+
+    submit.addEventListener('click', apply);
+    input.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') apply();
+    });
+    input.focus();
+  }
+
+  function signOut() {
+    token = '';
+    writeToken('');
+    renderSignIn();
+  }
+
+  function load(days) {
+    currentDays = days;
+
+    if (!token) {
+      renderSignIn();
+      return;
+    }
+
+    fetch('/api/stats?days=' + days, {
+      credentials: 'same-origin',
+      headers: { 'X-Stats-Token': token },
+    })
+      .then(function (response) {
+        if (response.status === 404) throw new Error('unauthorized');
+        if (!response.ok) throw new Error(String(response.status));
+        return response.json();
+      })
+      .then(function (data) {
+        periods.hidden = false;
+        render(data.stats);
+      })
+      .catch(function (error) {
+        if (error.message === 'unauthorized') {
+          signOut();
+          renderSignIn('Токен не подошёл. Проверьте, что сервер запущен с этим STATS_TOKEN.');
+          return;
+        }
+        content.innerHTML = '<div class="empty"><strong>Не удалось загрузить статистику</strong>' +
+          'Сервер не ответил. Проверьте, что он запущен.</div>';
+      });
+  }
+
+  document.getElementById('signout').addEventListener('click', signOut);
+
+  periods.addEventListener('click', function (event) {
+    var button = event.target.closest('button[data-days]');
+    if (!button) return;
+    periods.querySelectorAll('button').forEach(function (item) {
+      item.setAttribute('aria-pressed', String(item === button));
+    });
+    load(button.dataset.days);
+  });
+
+  load(7);
+})();
+</script>
+</body>
+</html>
